@@ -1,7 +1,29 @@
 {
-  "name": "horizon-test",
-  "version": "0.1.0",
-  "private": true,
+  "name": "tien-len-card-game",
+  "version": "1.0.0",
+  "description": "A modern implementation of Tien Len (Vietnamese Poker) card game with retro pixel art styling and WebSocket multiplayer support",
+  "keywords": [
+    "tien-len",
+    "thirteen",
+    "vietnamese-poker",
+    "card-game",
+    "nextjs",
+    "react",
+    "typescript",
+    "websocket",
+    "multiplayer"
+  ],
+  "homepage": "https://github.com/your-username/tien-len-card-game#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/tien-len-card-game/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/tien-len-card-game.git"
+  },
+  "license": "MIT",
+  "author": "Tien Len Game Contributors",
+  "private": false,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -30,5 +52,5 @@
     "tsx": "^4.20.3",
     "typescript": "^5"
   },
-  "type": "commonjs"
+  "type": "module"
 }

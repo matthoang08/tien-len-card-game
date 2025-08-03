@@ -1,34 +1,11 @@
-/**
- * Custom Next.js Server with WebSocket Support
- * 
- * This server extends the standard Next.js server to include WebSocket functionality
- * for real-time multiplayer features in the Tien Len card game.
- * 
- * Features:
- * - Standard Next.js application serving
- * - WebSocket server for real-time communication
- * - Basic lobby system for game tables
- * - Simple chat functionality
- * - Player connection management
- * 
- * WebSocket API:
- * - 'welcome': Sent to new clients with their ID
- * - 'ping'/'pong': Heartbeat for connection health
- * - 'join': Join a game room/lobby
- * - 'chat': Send chat messages to room members
- * - 'presence': Player join/leave notifications
- * 
- * @module custom-server
- */
-
 // Custom Next.js server with ws WebSocket support
 // Runs Next.js and attaches a ws WebSocketServer on the same HTTP server.
 // Dev: pnpm dev:custom
 // Prod build/start: pnpm build && pnpm start:custom
 
-import http from 'http';
-import next from 'next';
-import { WebSocketServer, WebSocket } from 'ws';
+const http = require('http');
+const next = require('next');
+const { WebSocketServer, WebSocket } = require('ws');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -53,15 +30,10 @@ async function main() {
   const wss = new WebSocketServer({ server });
 
   // Basic lobby and echo implementation as a placeholder for Tien-Len
-  type Client = {
-    id: string;
-    socket: WebSocket;
-    room?: string;
-  };
+  
+  const clients = new Map();
 
-  const clients = new Map<WebSocket, Client>();
-
-  function broadcast(room: string | undefined, data: any) {
+  function broadcast(room | undefined, data) {
     const payload = JSON.stringify(data);
     for (const [, c] of clients) {
       if (!room || c.room === room) {

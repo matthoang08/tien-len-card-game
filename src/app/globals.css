@@ -1,26 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
+/* Retro pixel font */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0e0d1b; /* deep purple-black */
+  --foreground: #e6e2ff; /* soft lavender white */
+  --accent: #8ef38e;     /* neon green */
+  --accent-2: #f7a8b8;   /* candy pink */
+  --panel: #1a1830;      /* panel bg */
+  --card-bg: #2a2848;    /* card bg */
+  --card-border: #f8e8b8;/* parchment border */
+  --scanline: rgba(255,255,255,0.04);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Press Start 2P", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-mono: "Press Start 2P", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0a17;
+    --foreground: #f2efff;
   }
 }
 
+html, body, #__next {
+  height: 100%;
+}
+
 body {
-  background: var(--background);
+  background:
+    linear-gradient(0deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+    radial-gradient(1200px 800px at 20% -10%, #2a2550 0%, transparent 60%),
+    radial-gradient(1000px 700px at 120% 110%, #301934 0%, transparent 60%),
+    #0b0a17;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle CRT scanlines overlay */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(
+      rgba(0,0,0,0) 50%,
+      rgba(0,0,0,0.12) 50%
+    );
+  background-size: 100% 2px; /* scanlines */
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+
+/* Slight vignette */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(80% 60% at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.4) 100%);
+  z-index: 0;
+}
+
+/* Retro panel */
+.retro-panel {
+  background: var(--panel);
+  border: 3px solid #3b2f6a;
+  box-shadow:
+    inset 0 0 0 3px #0c0b18,
+    0 6px 0 0 #0c0b18,
+    0 6px 0 3px #3b2f6a,
+    0 10px 12px rgba(0,0,0,0.6);
+  border-radius: 8px;
+}
+
+/* Pixel button */
+.pixel-btn {
+  background: linear-gradient(#2b274a, #1d1a34);
+  color: var(--foreground);
+  border: 3px solid #3b2f6a;
+  box-shadow: 0 4px 0 #0c0b18;
+  padding: 10px 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 0.05s ease, box-shadow 0.05s ease, filter 0.2s ease;
+}
+.pixel-btn:hover {
+  filter: brightness(1.15) saturate(1.1);
+}
+.pixel-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0c0b18;
+}
+
+/* Card visuals */
+.pixel-card {
+  position: relative;
+  width: 72px;
+  height: 96px;
+  background: var(--card-bg);
+  border: 4px solid var(--card-border);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 3px #0c0b18,
+    0 4px 0 #0c0b18,
+    0 8px 12px rgba(0,0,0,0.55);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  text-shadow: 0 1px 0 #0c0b18;
+  user-select: none;
+}
+.pixel-card[data-suit="♥"],
+.pixel-card[data-suit="♦"] {
+  color: #ff7a7a;
+}
+.pixel-card[data-selected="true"] {
+  outline: 3px solid var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+.pixel-card .rank {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 10px;
+}
+.pixel-card .suit {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Pixel badges/chips */
+.pixel-chip {
+  background: #0c0b18;
+  border: 2px solid #3b2f6a;
+  color: var(--accent);
+  padding: 4px 6px;
+  border-radius: 6px;
+  text-shadow: 0 1px 0 #000;
+}
+
+/* Utility for card rows */
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Links */
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: #b2ffb2;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
