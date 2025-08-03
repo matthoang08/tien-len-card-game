@@ -275,9 +275,254 @@ export function applyPass(state: GameState, player: PlayerId): GameState {
   return newState;
 }
 
-// Very simple AI: try to play the lowest legal single; if no lastCombo, play lowest single.
-// Later: teach pairs/straights, better strategy.
+// Enhanced AI with strategic hand management
 export function aiChooseMove(state: GameState, player: PlayerId): { play: Card[] | null } {
+  const hand = state.hands[player];
+  const sorted = sortCardsByRankSuit(hand);
+  
+  // Get all possible legal moves
+  const legalMoves = getAllLegalMoves(state, player);
+  
+  if (legalMoves.length === 0) {
+    return { play: null };
+  }
+  
+  // Strategy: Choose the best move based on multiple factors
+  const bestMove = selectBestMove(legalMoves, state, player);
+  return { play: bestMove };
+}
+
+// Get all possible legal moves for a player
+function getAllLegalMoves(state: GameState, player: PlayerId): Card[][] {
+  const hand = state.hands[player];
+  const moves: Card[][] = [];
+  
+  // Try singles
+  for (const card of hand) {
+    const move = [card];
+    const legal = isLegalMove(state, player, move);
+    if (legal.ok) {
+      moves.push(move);
+    }
+  }
+  
+  // Try pairs
+  const rankGroups = groupCardsByRank(hand);
+  for (const [rank, cards] of Object.entries(rankGroups)) {
+    if (cards.length >= 2) {
+      // Try pairs
+      const pair = cards.slice(0, 2);
+      const legal = isLegalMove(state, player, pair);
+      if (legal.ok) {
+        moves.push(pair);
+      }
+      
+      // Try triples if available
+      if (cards.length >= 3) {
+        const triple = cards.slice(0, 3);
+        const legal = isLegalMove(state, player, triple);
+        if (legal.ok) {
+          moves.push(triple);
+        }
+      }
+    }
+  }
+  
+  // Try straights
+  const straights = findStraights(hand);
+  for (const straight of straights) {
+    const legal = isLegalMove(state, player, straight);
+    if (legal.ok) {
+      moves.push(straight);
+    }
+  }
+  
+  // Try bombs (4 of a kind)
+  for (const [rank, cards] of Object.entries(rankGroups)) {
+    if (cards.length === 4) {
+      const legal = isLegalMove(state, player, cards);
+      if (legal.ok) {
+        moves.push(cards);
+      }
+    }
+  }
+  
+  return moves;
+}
+
+// Group cards by rank
+function groupCardsByRank(cards: Card[]): Record<string, Card[]> {
+  const groups: Record<string, Card[]> = {};
+  for (const card of cards) {
+    if (!groups[card.rank]) {
+      groups[card.rank] = [];
+    }
+    groups[card.rank].push(card);
+  }
+  return groups;
+}
+
+// Find all possible straights in a hand
+function findStraights(hand: Card[]): Card[][] {
+  const straights: Card[][] = [];
+  const rankGroups = groupCardsByRank(hand);
+  
+  // For each possible starting rank
+  for (let i = 0; i < RANKS.length - 2; i++) {
+    // Try different straight lengths (3 to max possible)
+    for (let length = 3; length <= Math.min(10, RANKS.length - i); length++) {
+      const straightCards: Card[] = [];
+      let valid = true;
+      
+      // Check if we can form a straight of this length
+      for (let j = 0; j < length; j++) {
+        const rank = RANKS[i + j];
+        if (rank === '2') {
+          valid = false; // 2 cannot be used in straights
+          break;
+        }
+        const cardsOfRank = rankGroups[rank];
+        if (!cardsOfRank || cardsOfRank.length === 0) {
+          valid = false;
+          break;
+        }
+        // Take the first available card of this rank
+        straightCards.push(cardsOfRank[0]);
+      }
+      
+      if (valid && straightCards.length === length) {
+        straights.push(straightCards);
+      }
+    }
+  }
+  
+  return straights;
+}
+
+// Select the best move based on strategic considerations
+function selectBestMove(moves: Card[][], state: GameState, player: PlayerId): Card[] | null {
+  if (moves.length === 0) return null;
+  
+  // If this is the first play of a new trick (no last combo), play strategically
+  if (!state.lastCombo) {
+    return selectBestOpeningMove(moves, state, player);
+  }
+  
+  // If trying to beat a previous play, be more aggressive
+  return selectBestFollowingMove(moves, state, player);
+}
+
+// Select the best opening move (when no cards on table)
+function selectBestOpeningMove(moves: Card[][], state: GameState, player: PlayerId): Card[] | null {
+  const hand = state.hands[player];
+  
+  // Strategy: 
+  // 1. Prefer moves that preserve good combinations for future plays
+  // 2. Avoid breaking up strong combinations unless necessary
+  // 3. Consider hand size and position
+  
+  // Score each move based on strategic value
+  const scoredMoves = moves.map(move => ({
+    move,
+    score: scoreOpeningMove(move, hand, state, player)
+  }));
+  
+  // Sort by score (highest first)
+  scoredMoves.sort((a, b) => b.score - a.score);
+  
+  // Return the best move, or the first move if all scores are equal
+  return scoredMoves[0]?.move || moves[0] || null;
+}
+
+// Score an opening move based on strategic considerations
+function scoreOpeningMove(move: Card[], hand: Card[], state: GameState, player: PlayerId): number {
+  let score = 0;
+  
+  // Prefer singles over combinations for opening moves (preserve options)
+  if (move.length === 1) {
+    score += 10;
+    
+    // Prefer middle-ranked cards for opening moves
+    const rankIdx = rankIndex(move[0].rank);
+    if (rankIdx >= 4 && rankIdx <= 9) {
+      score += 5; // Middle cards are generally safer
+    }
+    
+    // Bonus for cards that don't break up good combinations
+    const remainingHand = hand.filter(card => 
+      !(card.rank === move[0].rank && card.suit === move[0].suit)
+    );
+    
+    // Check if playing this card breaks up a pair
+    const sameRankCards = remainingHand.filter(card => card.rank === move[0].rank);
+    if (sameRankCards.length >= 1) {
+      score -= 3; // Penalty for breaking up a pair
+    }
+    
+    // Check if playing this card breaks up a straight potential
+    // This is a simplified check - in practice, you'd want more sophisticated straight analysis
+  } else {
+    // For combinations, prefer smaller ones that don't overcommit
+    if (move.length === 2) {
+      score += 5; // Pairs are good
+    } else if (move.length === 3) {
+      score += 3; // Triples are okay
+    } else if (move.length >= 4) {
+      score += 1; // Bombs should be saved for important moments
+    }
+  }
+  
+  // Bonus for moves that help set up future plays
+  const combo = detectCombo(move);
+  if (combo) {
+    if (combo.type === 'pair' || combo.type === 'triple') {
+      // These help maintain hand structure
+      score += 2;
+    }
+  }
+  
+  return score;
+}
+
+// Select the best move when following (trying to beat previous play)
+function selectBestFollowingMove(moves: Card[][], state: GameState, player: PlayerId): Card[] | null {
+  if (!state.lastCombo) return moves[0] || null;
+  
+  // Score each move based on how well it beats the previous play
+  const scoredMoves = moves.map(move => {
+    const combo = detectCombo(move);
+    if (!combo) return { move, score: -1000 };
+    
+    const comparison = compareCombos(state.lastCombo!, combo);
+    if (comparison <= 0) return { move, score: -1000 }; // Invalid move
+    
+    let score = comparison * 10; // Higher comparison = better
+    
+    // Bonus for not overcommitting (playing the minimum needed to win)
+    if (combo.type === state.lastCombo!.type && combo.cards.length === state.lastCombo!.cards.length) {
+      score += 5; // Same type and size is efficient
+    }
+    
+    // Prefer to save bombs for when really needed
+    if (combo.type === 'bomb4') {
+      score -= 20; // Penalty for using bomb unless absolutely necessary
+    }
+    
+    return { move, score };
+  });
+  
+  // Remove invalid moves
+  const validMoves = scoredMoves.filter(item => item.score > -1000);
+  if (validMoves.length === 0) return null;
+  
+  // Sort by score (highest first)
+  validMoves.sort((a, b) => b.score - a.score);
+  
+  return validMoves[0].move;
+}
+
+// Simple fallback AI (original implementation) for comparison
+export function aiChooseMoveSimple(state: GameState, player: PlayerId): { play: Card[] | null } {
   const hand = state.hands[player];
   const sorted = sortCardsByRankSuit(hand);
   // try singles first
