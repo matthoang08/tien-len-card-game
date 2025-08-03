@@ -36,6 +36,8 @@ import {
   type Card,
   type Combo,
   type GameState,
+  type Suit,
+  type Rank,
 } from '@/game/tienlen';
 
 function prettyCombo(c: Combo | null) {
@@ -101,11 +103,11 @@ export default function TestPage() {
       .split(',')
       .map((x) => x.trim())
       .map((t) => {
-        const suit = t.slice(-1);
-        const rank = t.slice(0, t.length - 1);
+        const suit = t.slice(-1) as Suit;
+        const rank = t.slice(0, t.length - 1) as Rank;
         if (!['♠', '♥', '♦', '♣'].includes(suit)) return null;
         // the engine already validates ranks; we just structure object here
-        return { rank: rank as any, suit: suit as any } as Card;
+        return { rank, suit } as Card;
       })
       .filter(Boolean) as Card[];
   }
